@@ -9,31 +9,30 @@
 
 int main (int argc, char **argv)
 {
+    CGLContextObj ctx;
 
-CGLContextObj ctx;
-
-CGLPixelFormatAttribute attributes[] = {
-       kCGLPFANoRecovery,
-       kCGLPFAAccelerated,   // no software rendering
-       kCGLPFAColorSize, (CGLPixelFormatAttribute)24,
-       kCGLPFADepthSize, (CGLPixelFormatAttribute)24,
-       kCGLPFAAccelerated, (CGLPixelFormatAttribute)0,
-       kCGLPFAOpenGLProfile, // core profile with the version stated below
+    CGLPixelFormatAttribute attributes[] = {
+        kCGLPFANoRecovery,
+        kCGLPFAAccelerated,   // no software rendering
+        kCGLPFAColorSize, (CGLPixelFormatAttribute)24,
+        kCGLPFADepthSize, (CGLPixelFormatAttribute)24,
+        kCGLPFAAccelerated, (CGLPixelFormatAttribute)0,
+        kCGLPFAOpenGLProfile, // core profile with the version stated below
         (CGLPixelFormatAttribute) kCGLOGLPVersion_3_2_Core,
-       kCGLPFASampleBuffers,1,
-       kCGLPFASamples,4,
-       kCGLPFAMultisample
-   };
- 
+        kCGLPFASampleBuffers,1,
+        kCGLPFASamples,4,
+        kCGLPFAMultisample
+    };
 
-CGLPixelFormatObj pix;
-GLint num; // stores the number of possible pixel formats
-CGLChoosePixelFormat( attributes, &pix, &num );
-CGLCreateContext( pix, NULL, &ctx ); // second parameter can be another context for object sharing
-CGLDestroyPixelFormat( pix );
-CGLSetCurrentContext( ctx );
-  
-CGLLockContext(ctx);
+
+    CGLPixelFormatObj pix;
+    GLint num; // stores the number of possible pixel formats
+    CGLChoosePixelFormat( attributes, &pix, &num );
+    CGLCreateContext( pix, NULL, &ctx ); // second parameter can be another context for object sharing
+    CGLDestroyPixelFormat( pix );
+    CGLSetCurrentContext( ctx );
+
+    CGLLockContext(ctx);
 
 
     GLuint  renderBuffer = 0;
@@ -64,31 +63,27 @@ CGLLockContext(ctx);
 	int i = 0;
     float x = 10.0;
     float y = 10.0;
-    
+
     int samplesPerPixel = 4; // R, G, B and A
     int rowBytes = samplesPerPixel * img_width;
     char* bufferData = (char*)malloc(rowBytes * img_height);
-	
+
 	CGColorSpaceRef colorSpace = CGColorSpaceCreateWithName(kCGColorSpaceGenericRGB);
 	CGBitmapInfo bitmapInfo = kCGImageAlphaNoneSkipFirst | kCGBitmapByteOrder32Little;	// XRGB Little Endian
 	int bitsPerComponent = 8;
-    
-    
+
     CFIndex capacity = 1;
-    
+
     glEnable(GL_MULTISAMPLE);
-	
+
 	for(i=0;i<10;i++){
 		sprintf(kOutputFile,"window%04d.jpg",i);
-		
+
 		glEnable(GL_DEPTH_TEST);
-		//REPORTGLERROR("enabling depth testing");
 
 		glClearColor(0.0, 0.0, 0.0, 1.0);
-		//REPORTGLERROR("specifying clear color");
 
 		glViewport(0, 0, img_width, img_height);
-		//REPORTGLERROR("specifying viewport");
 
 		glMatrixMode(GL_PROJECTION);
 		glLoadIdentity();
@@ -96,13 +91,10 @@ CGLLockContext(ctx);
 
 		glMatrixMode(GL_MODELVIEW);
 		glLoadIdentity();
-		//REPORTGLERROR("setting up view/model matrices");
 
 		glClear(GL_COLOR_BUFFER_BIT);
-		//REPORTGLERROR("clearing color buffer");
 
 		glClear(GL_DEPTH_BUFFER_BIT);
-		//REPORTGLERROR("clearing depth buffer");
 
 		glBegin(GL_TRIANGLES);
 		glColor3f(1.0, 0.0, 0.0);
@@ -113,38 +105,19 @@ CGLLockContext(ctx);
 		glVertex3f(-200.0-x, -200.0-y, 0.0);
 		glEnd();
 
-		//REPORTGLERROR("rendering scene");
         x += 50.0;
         y += 50.0;
 
-		/*
-		 * Extract the resulting rendering as an image
-		 */
-
-		
-
+		//Extract the resulting rendering as an image
 		glReadPixels(0, 0, img_width, img_height, GL_BGRA, GL_UNSIGNED_BYTE, bufferData);
-		//REPORTGLERROR("reading pixels from framebuffer");
 
-		/*
-		 * Output the image to a file
-		 */
-
-
+		// output the image as a file
         CGContextRef contextRef = CGBitmapContextCreate(bufferData,
 				img_width, img_height, bitsPerComponent, rowBytes, colorSpace, bitmapInfo);
 		CGImageRef imageRef = CGBitmapContextCreateImage(contextRef);
 
-		
-		
-		/*
-		CFURLRef fileURL = CFURLCreateWithFileSystemPath(kCFAllocatorDefault,
-			CFSTR(kOutputFile), kCFURLPOSIXPathStyle, isDirectory);
-		*/
 		CFURLRef fileURL = CFURLCreateWithFileSystemPath(kCFAllocatorDefault,
 							CFStringCreateWithCString (NULL,kOutputFile,kCFStringEncodingUTF8), kCFURLPOSIXPathStyle, 0);
-	
-	
 
 		CFIndex                 fileImageIndex = 1;
 		CFMutableDictionaryRef  fileDict       = NULL;
@@ -156,8 +129,6 @@ CGLLockContext(ctx);
 																		  fileImageIndex,
 																		  fileDict);
 
-
-		
 		CFMutableDictionaryRef imageProps = CFDictionaryCreateMutable(kCFAllocatorDefault,
 												   capacity,
 												   &kCFTypeDictionaryKeyCallBacks,
@@ -165,27 +136,24 @@ CGLLockContext(ctx);
 
 		CGImageDestinationAddImage(imageDest, imageRef, imageProps);
 		CGImageDestinationFinalize(imageDest);
-		
-		
-		
+
 		CFRelease(imageDest);
 		CFRelease(fileURL);
 		CFRelease(imageProps);
-		
+
 		CGImageRelease(imageRef);
+        // end of save image stuff
 	}
-    
+
     free(bufferData);
-    
+
 	CGColorSpaceRelease( colorSpace );
-	
+
     // unbind the FBO
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
 
-
     CGLSetCurrentContext(NULL);
     CGLDestroyContext(ctx);
-
 
     return 0;
 }
